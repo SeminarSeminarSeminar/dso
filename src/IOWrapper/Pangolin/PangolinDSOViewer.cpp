@@ -21,7 +21,8 @@
 * along with DSO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
+#include <thread>
+#include <chrono>
 
 #include "PangolinDSOViewer.h"
 #include "KeyFrameDisplay.h"
@@ -31,6 +32,7 @@
 #include "FullSystem/HessianBlocks.h"
 #include "FullSystem/FullSystem.h"
 #include "FullSystem/ImmaturePoint.h"
+
 
 namespace dso
 {
@@ -159,6 +161,9 @@ void PangolinDSOViewer::run()
 	pangolin::Var<double> settings_kfFrequency("ui.kfFrequency",setting_kfGlobalWeight,0.1,3, false);
 	pangolin::Var<double> settings_gradHistAdd("ui.minGradAdd",setting_minGradHistAdd,0,15, false);
 
+    // Add by Yohan.
+    pangolin::Var<bool> settings_savePCButton("ui.savePointCloud",false,false);
+
 	pangolin::Var<double> settings_trackFps("ui.Track fps",0,0,0,false);
 	pangolin::Var<double> settings_mapFps("ui.KF fps",0,0,0,false);
 
@@ -281,6 +286,61 @@ void PangolinDSOViewer::run()
 	    	setting_fullResetRequested = true;
 	    }
 
+        // Added by Yo Han.
+        if(settings_savePCButton.Get())
+        {
+            printf("Saving [%d] Point Cloud Data....\n", numPCL);
+            settings_savePCButton.Reset();
+
+            while (1)
+            {
+                if (!isWritePCL)
+                {
+                    isSavePCL = false;
+                    break;
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+
+            while (1)
+            {
+                if (isPCLfileClose)
+                {
+                    std::ofstream finalFile(strSaveFileName);
+                    finalFile << std::string("# .PCD v.6 - Point Cloud Data file format\n");
+                    finalFile << std::string("FIELDS x y z\n");
+                    finalFile << std::string("SIZE 4 4 4\n");
+                    finalFile << std::string("TYPE F F F\n");
+                    finalFile << std::string("COUNT 1 1 1\n");
+                    finalFile << std::string("WIDTH ") << numPCL << std::string("\n");
+                    finalFile << std::string("HEIGHT 1\n");
+                    finalFile << std::string("#VIEWPOINT 0 0 0 1 0 0 0\n");
+                    finalFile << std::string("POINTS ") << numPCL << std::string("\n");
+                    finalFile << std::string("DATA ascii\n");
+
+                    std::ifstream savedFile(strTmpFileName);
+
+                    while (!savedFile.eof())
+                    {                        
+                        finalFile.put(savedFile.get());                        
+                    }
+
+                    finalFile.close();
+                    savedFile.close();
+
+                    printf("PCL File for 'pcl_data.pcd' is saved.\n");
+
+                    break;
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+
+        }
+
 		// Swap frames and Process Events
 		pangolin::FinishFrame();
 
@@ -320,6 +380,10 @@ void PangolinDSOViewer::reset_internal()
 	allFramePoses.clear();
 	keyframesByKFID.clear();
 	connections.clear();
+    // Added by Yo Han.
+    isSavePCL = true;
+    isPCLfileClose = false;
+    numPCL = 0;
 	model3DMutex.unlock();
 
 
@@ -481,7 +545,7 @@ void PangolinDSOViewer::publishKeyframes(
 			keyframes.push_back(kfd);
 		}
 		keyframesByKFID[fh->frameID]->setFromKF(fh, HCalib);
-	}
+    }
 }
 void PangolinDSOViewer::publishCamPose(FrameShell* frame,
 		CalibHessian* HCalib)
