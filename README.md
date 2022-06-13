@@ -1,3 +1,39 @@
+# DSO
+*Tested on Ubuntu 22.04*
+
+## Build
+
+```bash
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make -j8
+```
+
+## Run
+```bash
+$ bin/dso_dataset \
+> files=[dataset path]/sequence_XX/images.zip \
+> calib=[dataset path]/camera.txt \
+> gamma=[dataset path]/pcalib.txt \
+> vignette=[dataset path]/sequence_XX/vignette.png \
+> preset=0 \
+> mode=0 \
+> sampleoutput=1
+```
+
+## Save generated point cloud
+Click the button [savePointCloud] in the UI when the desired point clouds have been generated.
+
+The output .pcd file is generated in the `build` directory as `pcl_data.pcd` and `pcl_data_tmp.pcd`.
+
+Note that the output file size is quite large(> 20GB for the full point clouds from TUM dataset sequence01) and the UI may appear frozen while the output is being saved.
+
+
+---
+# Original readme
+---
+
 # DSO: Direct Sparse Odometry
 
 For more information see
